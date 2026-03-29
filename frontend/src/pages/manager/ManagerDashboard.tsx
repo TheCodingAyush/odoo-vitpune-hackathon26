@@ -1,13 +1,14 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, CheckCircle2, XCircle, ArrowRightLeft, Maximize2, AlertTriangle, FastForward, Settings } from "lucide-react"
+import { FileText, CheckCircle2, XCircle, ArrowRightLeft, Maximize2, AlertTriangle, FastForward, Settings, Loader2 } from "lucide-react"
 import { DelegationControls } from "@/components/manager/DelegationControls"
 
 type QueueItem = {
-  id: string;
+  id: string;        // expense_approval.id (for the action endpoint)
+  expenseId: string;
   user: string;
   date: string;
   merchant: string;
@@ -20,20 +21,44 @@ type QueueItem = {
   flagReason?: string;
 }
 
-const initialQueue: QueueItem[] = [
-  { id: "EXP-8904", user: "Emma Davis", date: "2024-03-27", merchant: "AWS Services", amount: 5540.00, currency: "USD", category: "Software", receipt: "aws_inv_03.pdf", priority: "high", flagReason: "Policy Limit Exceeded" },
-  { id: "EXP-8902", user: "Alice Smith", date: "2024-03-25", merchant: "Delta Airlines", amount: 450.00, currency: "USD", category: "Travel", receipt: "receipt_8902.pdf", priority: "normal" },
-  { id: "EXP-8903", user: "John Doe", date: "2024-03-26", merchant: "Le Bernardin", amount: 280.00, currency: "EUR", converted: 302.40, category: "Meals", receipt: "receipt_8903.jpg", priority: "normal" },
-]
-
 export function ManagerDashboard() {
   const [viewMode, setViewMode] = useState<"inbox" | "settings">("inbox")
-  const [queue, setQueue] = useState<QueueItem[]>(initialQueue)
-  const [selectedExpId, setSelectedExpId] = useState<string>(queue[0]?.id)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedExpId, setSelectedExpId] = useState<string>("")
   const [selectedBulkIds, setSelectedBulkIds] = useState<Set<string>>(new Set())
   const [showModal, setShowModal] = useState(false)
   const [actionType, setActionType] = useState<"approve" | "reject" | "escalate" | null>(null)
   const [comment, setComment] = useState("")
+  const [isActing, setIsActing] = useState(false)
+
+  const getToken = () => JSON.parse(localStorage.getItem("enterprise_auth") || "{}").token || ""
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/approvals/queue", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const items: QueueItem[] = (data.queue || []).map((a: any) => ({
+          id: String(a.id),
+          expenseId: String(a.expense_id),
+          user: a.employee_name || "Employee",
+          date: a.date?.split("T")[0] || "",
+          merchant: a.description || a.category,
+          amount: parseFloat(a.amount),
+          currency: a.currency || "USD",
+          converted: a.converted_amount ? parseFloat(a.converted_amount) : undefined,
+          category: a.category,
+          receipt: `receipt_${a.expense_id}.pdf`,
+          priority: parseFloat(a.amount) > 1000 ? "high" : "normal",
+        }))
+        setQueue(items)
+        if (items.length > 0) setSelectedExpId(items[0].id)
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
 
   const selectedExp = queue.find(q => q.id === selectedExpId) || queue[0]
 
@@ -42,12 +67,42 @@ export function ManagerDashboard() {
     setShowModal(true)
   }
 
+  const handleConfirmAction = async () => {
+    if (!selectedExp || !actionType) return
+    setIsActing(true)
+    const status = actionType === "escalate" ? "approved" : actionType
+    try {
+      await fetch(`http://localhost:5000/api/approvals/${selectedExp.id}/action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ status, comments: comment || undefined }),
+      })
+      const newQueue = queue.filter(q => q.id !== selectedExp.id)
+      setQueue(newQueue)
+      setSelectedExpId(newQueue[0]?.id || "")
+    } catch {}
+    setIsActing(false)
+    setShowModal(false)
+    setComment("")
+  }
+
   const handleBulkApprove = () => {
     setQueue(queue.filter(q => !selectedBulkIds.has(q.id)))
     setSelectedBulkIds(new Set())
     if (selectedBulkIds.has(selectedExpId)) {
       setSelectedExpId(queue.find(q => !selectedBulkIds.has(q.id))?.id || "")
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-60">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   if (queue.length === 0) {
@@ -282,14 +337,10 @@ export function ManagerDashboard() {
                   <Button variant="ghost" className="h-10" onClick={() => setShowModal(false)}>Cancel</Button>
                   <Button 
                     className={`h-10 ${actionType === 'approve' ? 'bg-success hover:bg-success/90 text-white' : actionType === 'escalate' ? 'bg-warning hover:bg-warning/90 text-white' : 'bg-destructive hover:bg-destructive/90 text-white'}`}
-                    onClick={() => {
-                      setQueue(queue.filter(q => q.id !== selectedExp.id))
-                      setShowModal(false)
-                      setComment("")
-                      setSelectedExpId(queue.filter(q => q.id !== selectedExp.id)[0]?.id || "")
-                    }}
+                    onClick={handleConfirmAction}
+                    disabled={isActing}
                   >
-                    Confirm {actionType}
+                    {isActing ? <Loader2 className="w-4 h-4 animate-spin" /> : `Confirm ${actionType}`}
                   </Button>
                 </CardFooter>
               </Card>

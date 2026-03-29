@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,30 +24,6 @@ const monthlyData = [
   { name: "Jul", expenses: 3490 },
 ]
 
-const recentActivity = [
-  {
-    id: 1,
-    user: "Alice Smith",
-    action: "Submitted an expense report ($450.00)",
-    time: "2 hours ago",
-    status: "pending"
-  },
-  {
-    id: 2,
-    user: "Robert Johnson",
-    action: "Approved Software License ($120.00)",
-    time: "4 hours ago",
-    status: "approved"
-  },
-  {
-    id: 3,
-    user: "Emma Davis",
-    action: "Rejected Travel Expense ($2,400.00) - Over limit",
-    time: "1 day ago",
-    status: "rejected"
-  }
-]
-
 const categoryData = [
   { name: "Travel", budget: 15000, spent: 12400 },
   { name: "Software", budget: 8000, spent: 8540 },
@@ -61,6 +38,40 @@ const anomalyData = [
 ]
 
 export function AdminDashboard() {
+  const [totalProcessed, setTotalProcessed] = useState("$0.00")
+  const [activeEmployees, setActiveEmployees] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
+  const [recentActivity, setRecentActivity] = useState<{ id: number; user: string; action: string; time: string; status: string }[]>([])
+
+  useEffect(() => {
+    const token = JSON.parse(localStorage.getItem("enterprise_auth") || "{}").token || ""
+    const headers = { Authorization: `Bearer ${token}` }
+
+    fetch("http://localhost:5000/api/expenses/all", { headers })
+      .then(r => r.json())
+      .then(data => {
+        const expenses = data.expenses || []
+        const total = expenses.reduce((sum: number, e: any) => sum + parseFloat(e.converted_amount || e.amount || 0), 0)
+        setTotalProcessed(`$${total.toFixed(2)}`)
+        setPendingCount(expenses.filter((e: any) => e.status === "pending").length)
+        setRecentActivity(
+          expenses.slice(0, 5).map((e: any, i: number) => ({
+            id: i + 1,
+            user: e.employee_name || "Employee",
+            action: `${ e.status === "approved" ? "Approved" : e.status === "rejected" ? "Rejected" : "Submitted" } ${e.category} ($${parseFloat(e.amount).toFixed(2)})`,
+            time: e.date?.split("T")[0] || "",
+            status: e.status,
+          }))
+        )
+      })
+      .catch(() => {})
+
+    fetch("http://localhost:5000/api/users", { headers })
+      .then(r => r.json())
+      .then(data => setActiveEmployees((data.users || []).length))
+      .catch(() => {})
+  }, [])
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -96,7 +107,7 @@ export function AdminDashboard() {
               <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
+              <div className="text-2xl font-bold">{totalProcessed}</div>
               <p className="text-xs text-muted-foreground flex items-center mt-1">
                 <TrendingUp className="h-3 w-3 text-success mr-1" />
                 <span className="text-success">+20.1%</span> from last month
@@ -112,7 +123,7 @@ export function AdminDashboard() {
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+2350</div>
+              <div className="text-2xl font-bold">{activeEmployees}</div>
               <p className="text-xs text-muted-foreground flex items-center mt-1">
                 <TrendingUp className="h-3 w-3 text-success mr-1" />
                 <span className="text-success">+180</span> new this year
@@ -144,7 +155,7 @@ export function AdminDashboard() {
               <CheckCircle2 className="h-4 w-4 text-primary-foreground/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">42</div>
+              <div className="text-2xl font-bold">{pendingCount}</div>
               <p className="text-xs text-primary-foreground/70 mt-1">
                 Awaiting Finance Department
               </p>

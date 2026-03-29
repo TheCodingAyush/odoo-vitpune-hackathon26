@@ -20,7 +20,6 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   
-  const [role, setRole] = useState<Role>("admin") // Demo purpose
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
   const location = useLocation()
@@ -36,33 +35,44 @@ export function Login() {
 
     setIsLoading(true)
 
-    // Simulate network latency for enterprise feel
-    await new Promise(resolve => setTimeout(resolve, 800))
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (password !== "password") {
-      setError("Invalid credentials. Use 'password' for demo.")
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.message || "Invalid credentials")
+        setIsLoading(false)
+        return
+      }
+
+      const { token, user } = data
+      login(
+        {
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          role: user.role as Role,
+          tenantId: String(user.company_id),
+          tenantName: null,
+        },
+        token
+      )
+
+      const from = location.state?.from?.pathname
+      if (from) {
+        navigate(from, { replace: true })
+      } else {
+        if (user.role === "admin") navigate("/admin", { replace: true })
+        else navigate(`/${user.role}`, { replace: true })
+      }
+    } catch (err) {
+      setError("Could not connect to server. Make sure the backend is running.")
       setIsLoading(false)
-      return
-    }
-
-    const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." + Date.now();
-    
-    login({
-      id: "usr_" + Math.random().toString(36).substr(2, 9),
-      name: "Jane Doe",
-      email: email,
-      role: role,
-      tenantId: "TENANT-101",
-      tenantName: "Acme Corp"
-    }, mockToken)
-    
-    // Redirect logic: respect 'from' location if it exists
-    const from = location.state?.from?.pathname
-    if (from) {
-      navigate(from, { replace: true })
-    } else {
-      if (role === "admin") navigate("/admin", { replace: true })
-      else navigate(`/${role}`, { replace: true })
     }
   }
 
@@ -120,26 +130,6 @@ export function Login() {
                   className="h-11 bg-muted/50 focus:bg-background transition-colors"
                   disabled={isLoading}
                 />
-                <p className="text-xs text-muted-foreground pt-1">Use 'password' to get in</p>
-              </div>
-              
-              <div className="space-y-2 pt-2 border-t mt-4">
-                <label className="text-sm font-medium leading-none mb-2 block text-muted-foreground">Demo Role Selector</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["admin", "manager", "employee"] as const).map((r) => (
-                    <div
-                      key={r}
-                      onClick={() => !isLoading && setRole(r)}
-                      className={`cursor-pointer border rounded-lg p-2 text-center text-xs font-medium capitalize transition-all ${
-                        role === r
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-background hover:bg-muted"
-                      } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      {r}
-                    </div>
-                  ))}
-                </div>
               </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">

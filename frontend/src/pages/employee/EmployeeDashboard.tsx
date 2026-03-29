@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, Filter } from "lucide-react"
+import { Search, Filter, Loader2 } from "lucide-react"
 import { ExpenseTimeline, type TimelineStep } from "@/components/employee/ExpenseTimeline"
 
 type Expense = {
@@ -17,36 +17,43 @@ type Expense = {
   steps: TimelineStep[];
 }
 
-const myExpenses: Expense[] = [
-  { 
-    id: "EXP-8902", date: "2024-03-25", merchant: "Delta Airlines", amount: "$450.00", category: "Travel", status: "pending", 
-    steps: [
-      { name: "Submitted", status: "completed" as const, date: "Mar 25", actor: "You" },
-      { name: "Manager Approval", status: "pending" as const, date: "Waiting", actor: "Sarah J." },
-      { name: "Finance Review", status: "upcoming" as const, date: "" }
-    ]
-  },
-  { 
-    id: "EXP-8841", date: "2024-03-20", merchant: "AWS Services", amount: "$120.00", category: "Software", status: "approved", 
-    steps: [
-      { name: "Submitted", status: "completed" as const, date: "Mar 20", actor: "You" },
-      { name: "Manager Approval", status: "completed" as const, date: "Mar 21", actor: "Sarah J.", comment: "Looks good for the Q1 hosting" },
-      { name: "Finance Review", status: "completed" as const, date: "Mar 22", actor: "Finance Dept" },
-      { name: "Reimbursement Paid", status: "completed" as const, date: "Mar 24" }
-    ]
-  },
-  { 
-    id: "EXP-8700", date: "2024-03-15", merchant: "Uber Rides", amount: "$45.00", category: "Travel", status: "rejected", 
-    reason: "Out of policy limit for short distance without prior approval. Please use public transit for distances under 5 miles.",
-    steps: [
-      { name: "Submitted", status: "completed" as const, date: "Mar 15", actor: "You" },
-      { name: "Manager Approval", status: "rejected" as const, date: "Mar 16", actor: "Sarah J." },
-    ]
-  }
-]
-
 export function EmployeeDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [myExpenses, setMyExpenses] = useState<Expense[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const authData = JSON.parse(localStorage.getItem("enterprise_auth") || "{}")
+    fetch("http://localhost:5000/api/expenses/my", {
+      headers: { Authorization: `Bearer ${authData.token || ""}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const expenses: Expense[] = (data.expenses || []).map((e: any) => ({
+          id: `EXP-${e.id}`,
+          date: e.date?.split("T")[0] || "",
+          merchant: e.description || e.category,
+          amount: `${e.currency} ${parseFloat(e.amount).toFixed(2)}`,
+          category: e.category,
+          status: e.status as "pending" | "approved" | "rejected",
+          steps: [
+            { name: "Submitted", status: "completed" as const, date: e.date?.split("T")[0] || "", actor: "You" },
+            { name: "Manager Review", status: e.status === "pending" ? "pending" as const : "completed" as const, date: "" },
+          ],
+        }))
+        setMyExpenses(expenses)
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-60">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">

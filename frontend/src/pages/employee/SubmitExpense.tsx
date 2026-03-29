@@ -19,6 +19,7 @@ export function SubmitExpense() {
   const [currency, setCurrency] = useState(defaultCurrency)
   const [category, setCategory] = useState("Travel")
   const [purpose, setPurpose] = useState("")
+  const [submitError, setSubmitError] = useState("")
   
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -33,10 +34,35 @@ export function SubmitExpense() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    // Simulate real finalization
-    await new Promise(res => setTimeout(res, 2000))
-    setIsSubmitting(false)
-    setStep(4)
+    setSubmitError("")
+    try {
+      const authData = JSON.parse(localStorage.getItem("enterprise_auth") || "{}")
+      const res = await fetch("http://localhost:5000/api/expenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authData.token || ""}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount) || 0,
+          currency,
+          category,
+          description: purpose || merchant || category,
+          date: date || new Date().toISOString().split("T")[0],
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSubmitError(data.message || "Failed to submit expense")
+        setIsSubmitting(false)
+        return
+      }
+      setIsSubmitting(false)
+      setStep(4)
+    } catch {
+      setSubmitError("Could not connect to server.")
+      setIsSubmitting(false)
+    }
   }
 
   return (

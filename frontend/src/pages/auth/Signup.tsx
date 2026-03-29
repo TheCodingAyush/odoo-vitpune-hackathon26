@@ -14,8 +14,10 @@ import {
 import { Loader2, CheckCircle2, Building2, User } from "lucide-react"
 
 export function Signup() {
-  const [isNewCompany, setIsNewCompany] = useState(false)
+  const [isNewCompany, setIsNewCompany] = useState(true)
   const [companyName, setCompanyName] = useState("")
+  const [country, setCountry] = useState("")
+  const [currency, setCurrency] = useState("USD")
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +31,7 @@ export function Signup() {
     e.preventDefault()
     setError("")
     
-    if (!email || !password || !name || (isNewCompany && !companyName)) {
+    if (!email || !password || !name || !companyName || !country || !currency) {
       setError("Please fill in all fields.")
       return
     }
@@ -41,17 +43,28 @@ export function Signup() {
 
     setIsLoading(true)
 
-    // Simulate network latency for enterprise feel
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName, country, currency, name, email, password }),
+      })
 
-    // Switch to success state
-    setIsLoading(false)
-    setIsSuccess(true)
-    
-    // Auto redirect to login after a few seconds
-    setTimeout(() => {
-      navigate("/login")
-    }, 3000)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.message || "Signup failed. Please try again.")
+        setIsLoading(false)
+        return
+      }
+
+      setIsLoading(false)
+      setIsSuccess(true)
+      setTimeout(() => navigate("/login"), 3000)
+    } catch (err) {
+      setError("Could not connect to server. Make sure the backend is running.")
+      setIsLoading(false)
+    }
   }
 
   return (
