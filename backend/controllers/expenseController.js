@@ -62,7 +62,11 @@ async function submitExpense(req, res) {
         });
     } catch (error) {
         console.error("Error submitting expense:", error);
-        return res.status(500).json({ message: "Could not submit expense" });
+        console.error("Payload received:", req.body);
+        return res.status(500).json({ 
+            message: "Could not submit expense", 
+            error: error.message || error.toString() 
+        });
     }
 }
 

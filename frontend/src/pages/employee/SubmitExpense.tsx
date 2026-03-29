@@ -37,18 +37,24 @@ export function SubmitExpense() {
     setIsSubmitting(true)
     setSubmitError("")
     try {
-      await api.post("/expenses", {
+      const payload = {
         amount: parseFloat(amount) || 0,
         currency,
         category,
         description: purpose || merchant || category,
         date: date || new Date().toISOString().split("T")[0],
-      })
+      };
+      
+      console.log("Submitting Expense Payload:", payload);
+      
+      await api.post("/expenses", payload)
       
       setIsSubmitting(false)
       setStep(4)
     } catch (err: any) {
-      setSubmitError(err.response?.data?.message || err.message || "Failed to submit expense")
+      const serverMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to submit expense"
+      console.error("Expense Submission Error:", err.response?.data || err)
+      setSubmitError(serverMessage)
       setIsSubmitting(false)
     }
   }
