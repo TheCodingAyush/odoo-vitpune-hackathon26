@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,6 @@ export function Signup() {
   
   const [countries, setCountries] = useState<{name: string, currency: string}[]>([])
 
-  import { useEffect } from "react"
   useEffect(() => {
     fetch("https://restcountries.com/v3.1/all?fields=name,currencies")
       .then(res => res.json())
