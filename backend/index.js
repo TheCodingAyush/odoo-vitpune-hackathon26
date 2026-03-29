@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const pool = require("./config/db");
 
 const app = express();
@@ -22,6 +23,7 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((req, res) => {
     return res.status(404).json({ message: `Route ${req.originalUrl} not found` });

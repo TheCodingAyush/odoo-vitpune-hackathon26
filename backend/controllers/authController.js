@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const pool = require("../config/db");
-const { createCompany } = require("../models/companyModel");
-const { createUser, findUserByEmail } = require("../models/userModel");
+const { create: createCompany } = require("../models/Company");
+const { createUser, findByEmail } = require("../models/User");
 const { generateToken } = require("../utils/token");
 
 async function signup(req, res) {
@@ -14,7 +14,7 @@ async function signup(req, res) {
         });
     }
 
-    const existingUser = await findUserByEmail(email);
+    const existingUser = await findByEmail(email);
     if (existingUser) {
         return res.status(409).json({ message: "Email is already registered" });
     }
@@ -71,7 +71,7 @@ async function login(req, res) {
     }
 
     try {
-        const user = await findUserByEmail(email);
+        const user = await findByEmail(email);
 
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials" });
