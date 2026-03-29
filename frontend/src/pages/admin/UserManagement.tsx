@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import api from "@/lib/api"
 
 type User = {
   id: string | number;
@@ -28,18 +29,14 @@ export function UserManagement() {
   // Add User Form State
   const [newName, setNewName] = useState("")
   const [newEmail, setNewEmail] = useState("")
+  const [newPassword, setNewPassword] = useState("")
   const [newRole, setNewRole] = useState("employee")
   const [newManager, setNewManager] = useState("")
 
-  const getToken = () => JSON.parse(localStorage.getItem("enterprise_auth") || "{}").token || ""
-
   useEffect(() => {
-    fetch("http://localhost:5000/api/users", {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then(res => res.json())
-      .then(data => {
-        const uList = data.users || []
+    api.get("/users")
+      .then(res => {
+        const uList = res.data.users || []
         // Map manager names
         const enriched = uList.map((u: any) => {
           const mgr = uList.find((m: any) => m.id === u.manager_id)
@@ -71,23 +68,15 @@ export function UserManagement() {
     setIsCreating(true)
     
     try {
-      const res = await fetch("http://localhost:5000/api/users/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({
-          name: newName,
-          email: newEmail,
-          password: "password123", // Default password for new invites
-          role: newRole,
-          managerId: newRole === 'admin' ? null : parseInt(newManager) || null
-        })
+      const res = await api.post("/users/create", {
+        name: newName,
+        email: newEmail,
+        password: newPassword,
+        role: newRole,
+        managerId: newRole === 'admin' ? null : parseInt(newManager) || null
       })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || "Failed to create user")
+      const data = res.data
 
       const newUser = data.user
       const mgr = users.find(u => u.id === newUser.manager_id)
@@ -97,8 +86,9 @@ export function UserManagement() {
       setIsAddModalOpen(false)
       setNewName("")
       setNewEmail("")
+      setNewPassword("")
     } catch (err: any) {
-      setErrorMsg(err.message)
+      setErrorMsg(err.response?.data?.message || err.message || "Failed to create user")
     } finally {
       setIsCreating(false)
     }
@@ -238,6 +228,11 @@ export function UserManagement() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email Address</label>
                       <Input required type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="emily@acme.com" disabled={isCreating} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Temporary Password</label>
+                      <Input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" disabled={isCreating} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

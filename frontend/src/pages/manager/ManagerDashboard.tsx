@@ -70,9 +70,9 @@ export function ManagerDashboard() {
   const handleConfirmAction = async () => {
     if (!selectedExp || !actionType) return
     setIsActing(true)
-    const status = actionType === "escalate" ? "approved" : actionType
+    const status = actionType === "escalate" ? "escalated" : (actionType === "approve" ? "approved" : "rejected")
     try {
-      await fetch(`http://localhost:5000/api/approvals/${selectedExp.id}/action`, {
+      const res = await fetch(`http://localhost:5000/api/approvals/${selectedExp.id}/action`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,6 +80,7 @@ export function ManagerDashboard() {
         },
         body: JSON.stringify({ status, comments: comment || undefined }),
       })
+      if (!res.ok) throw new Error("API action failed")
       const newQueue = queue.filter(q => q.id !== selectedExp.id)
       setQueue(newQueue)
       setSelectedExpId(newQueue[0]?.id || "")

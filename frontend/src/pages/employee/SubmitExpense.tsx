@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
-import { CheckCircle2, ChevronRight, ChevronLeft, Calendar, FileText, BadgeDollarSign, Info, Search, ArrowRightLeft } from "lucide-react"
+import { CheckCircle2, ChevronRight, ChevronLeft, Calendar, FileText, BadgeDollarSign, Info, Search, ArrowRightLeft, AlertTriangle } from "lucide-react"
 import { ReceiptUploader } from "@/components/employee/ReceiptUploader"
 import { convertCurrency } from "@/lib/currency"
+import api from "@/lib/api"
 
 export function SubmitExpense() {
   const defaultCurrency = useAppStore(state => state.currency)
@@ -36,31 +37,18 @@ export function SubmitExpense() {
     setIsSubmitting(true)
     setSubmitError("")
     try {
-      const authData = JSON.parse(localStorage.getItem("enterprise_auth") || "{}")
-      const res = await fetch("http://localhost:5000/api/expenses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authData.token || ""}`,
-        },
-        body: JSON.stringify({
-          amount: parseFloat(amount) || 0,
-          currency,
-          category,
-          description: purpose || merchant || category,
-          date: date || new Date().toISOString().split("T")[0],
-        }),
+      await api.post("/expenses", {
+        amount: parseFloat(amount) || 0,
+        currency,
+        category,
+        description: purpose || merchant || category,
+        date: date || new Date().toISOString().split("T")[0],
       })
-      const data = await res.json()
-      if (!res.ok) {
-        setSubmitError(data.message || "Failed to submit expense")
-        setIsSubmitting(false)
-        return
-      }
+      
       setIsSubmitting(false)
       setStep(4)
-    } catch {
-      setSubmitError("Could not connect to server.")
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message || err.message || "Failed to submit expense")
       setIsSubmitting(false)
     }
   }
@@ -209,6 +197,13 @@ export function SubmitExpense() {
               </CardHeader>
               <CardContent className="grid gap-6 pt-6">
                 
+                {submitError && (
+                  <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm border border-destructive/20 font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {submitError}
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground/90">Category Allocation</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -310,7 +305,7 @@ export function SubmitExpense() {
             </p>
             
             <div className="flex gap-4">
-              <Button variant="outline" onClick={() => { setStep(1); setAmount(""); setMerchant(""); setPurpose(""); }}>
+              <Button variant="outline" onClick={() => { setStep(1); setAmount(""); setMerchant(""); setPurpose(""); setDate(""); setSubmitError(""); }}>
                 Submit Another
               </Button>
               <Button asChild>

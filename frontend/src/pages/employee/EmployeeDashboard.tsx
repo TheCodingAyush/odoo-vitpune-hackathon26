@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Loader2 } from "lucide-react"
+import { Search, Filter, Loader2, RefreshCcw } from "lucide-react"
 import { ExpenseTimeline, type TimelineStep } from "@/components/employee/ExpenseTimeline"
+import api from "@/lib/api"
 
 type Expense = {
   id: string;
@@ -22,29 +23,33 @@ export function EmployeeDashboard() {
   const [myExpenses, setMyExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  const fetchExpenses = async () => {
+    try {
+      const { data } = await api.get("/expenses/my")
+      const expenses: Expense[] = (data.expenses || []).map((e: any) => ({
+        id: `EXP-${e.id}`,
+        date: e.date?.split("T")[0] || "",
+        merchant: e.description || e.category,
+        amount: `${e.currency} ${parseFloat(e.amount).toFixed(2)}`,
+        category: e.category,
+        status: e.status as "pending" | "approved" | "rejected",
+        steps: [
+          { name: "Submitted", status: "completed" as const, date: e.date?.split("T")[0] || "", actor: "You" },
+          { name: "Manager Review", status: e.status === "pending" ? "pending" as const : "completed" as const, date: "" },
+        ],
+      }))
+      setMyExpenses(expenses)
+    } catch {
+      // Background ping fail
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const authData = JSON.parse(localStorage.getItem("enterprise_auth") || "{}")
-    fetch("http://localhost:5000/api/expenses/my", {
-      headers: { Authorization: `Bearer ${authData.token || ""}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const expenses: Expense[] = (data.expenses || []).map((e: any) => ({
-          id: `EXP-${e.id}`,
-          date: e.date?.split("T")[0] || "",
-          merchant: e.description || e.category,
-          amount: `${e.currency} ${parseFloat(e.amount).toFixed(2)}`,
-          category: e.category,
-          status: e.status as "pending" | "approved" | "rejected",
-          steps: [
-            { name: "Submitted", status: "completed" as const, date: e.date?.split("T")[0] || "", actor: "You" },
-            { name: "Manager Review", status: e.status === "pending" ? "pending" as const : "completed" as const, date: "" },
-          ],
-        }))
-        setMyExpenses(expenses)
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false))
+    fetchExpenses()
+    const interval = setInterval(fetchExpenses, 10000)
+    return () => clearInterval(interval)
   }, [])
 
   if (isLoading) {
@@ -62,9 +67,14 @@ export function EmployeeDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">My Expenses</h1>
           <p className="text-muted-foreground mt-2">Track history and live approval timelines.</p>
         </div>
-        <Button className="shadow-md hover:shadow-lg transition-all" onClick={() => window.location.href='/employee/submit'}>
-          Submit New
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" className="shadow-sm hover:shadow-md transition-all gap-2" onClick={fetchExpenses}>
+            <RefreshCcw className="w-4 h-4" /> Refresh
+          </Button>
+          <Button className="shadow-md hover:shadow-lg transition-all" onClick={() => window.location.href='/employee/submit'}>
+            Submit New
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4 items-center">

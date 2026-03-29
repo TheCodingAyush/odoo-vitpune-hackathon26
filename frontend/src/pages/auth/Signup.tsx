@@ -14,7 +14,6 @@ import {
 import { Loader2, CheckCircle2, Building2, User } from "lucide-react"
 
 export function Signup() {
-  const [isNewCompany, setIsNewCompany] = useState(true)
   const [companyName, setCompanyName] = useState("")
   const [country, setCountry] = useState("")
   const [currency, setCurrency] = useState("")
@@ -111,57 +110,26 @@ export function Signup() {
               >
                 <CardHeader className="space-y-2 text-center pb-4">
                   <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl mx-auto flex items-center justify-center mb-2">
-                    {isNewCompany ? <Building2 className="w-6 h-6" /> : <User className="w-6 h-6" />}
+                    <Building2 className="w-6 h-6" />
                   </div>
                   <CardTitle className="text-2xl font-semibold tracking-tight">
-                    {isNewCompany ? "Register Company" : "Request Access"}
+                    Register Company
                   </CardTitle>
                   <CardDescription>
-                    {isNewCompany 
-                      ? "Create a new Reimburse workspace for your team" 
-                      : "Join your company's existing Reimburse workspace"}
+                    Create a new Reimburse workspace for your team
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSignup}>
                   <CardContent className="space-y-4">
                     
-                    {/* Mode Toggle */}
-                    <div className="flex p-1 bg-muted/50 rounded-lg">
-                      <button
-                        type="button"
-                        onClick={() => { setIsNewCompany(false); setError(""); }}
-                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-                          !isNewCompany ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Employee
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setIsNewCompany(true); setError(""); }}
-                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-                          isNewCompany ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Company Admin
-                      </button>
-                    </div>
-
                     {error && (
                       <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm font-medium">
                         {error}
                       </div>
                     )}
                     
-                    <AnimatePresence>
-                      {isNewCompany && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="space-y-2 overflow-hidden"
-                        >
-                          <div className="space-y-2">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
                             <label className="text-sm font-medium leading-none block text-muted-foreground">Workspace Name</label>
                             <Input
                               placeholder="Acme Corp LLC"
@@ -195,9 +163,7 @@ export function Signup() {
                               className="h-11 bg-muted/50 opacity-70 cursor-not-allowed"
                             />
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        </div>
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium leading-none block text-muted-foreground">Full Name</label>
@@ -239,10 +205,10 @@ export function Signup() {
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isNewCompany ? "Setting up workspace..." : "Creating Account..."}
+                          Setting up workspace...
                         </>
                       ) : (
-                        isNewCompany ? "Register Company" : "Create Account"
+                        "Register Company"
                       )}
                     </Button>
                     <div className="text-sm text-center text-muted-foreground">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts"
 import { 
   DollarSign, 
@@ -11,8 +12,11 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  Loader2,
+  XCircle
 } from "lucide-react"
+import api from "@/lib/api"
 
 const monthlyData = [
   { name: "Jan", expenses: 4000 },
@@ -42,6 +46,26 @@ export function AdminDashboard() {
   const [activeEmployees, setActiveEmployees] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [recentActivity, setRecentActivity] = useState<{ id: number; user: string; action: string; time: string; status: string }[]>([])
+  const [escalatedQueue, setEscalatedQueue] = useState<any[]>([])
+  const [isActing, setIsActing] = useState<Record<string, boolean>>({})
+
+  const fetchEscalated = () => {
+    api.get("/approvals/queue").then(res => {
+      setEscalatedQueue((res.data.queue || []).filter((q: any) => q.comments?.includes("[ESCALATED]")))
+    }).catch(() => {})
+  }
+
+  const handleEscalatedAction = async (id: string, status: "approved" | "rejected") => {
+    setIsActing(prev => ({ ...prev, [id]: true }))
+    try {
+      await api.post(`/approvals/${id}/action`, { status })
+      setEscalatedQueue(prev => prev.filter(q => String(q.id) !== id))
+    } catch (e) {
+      console.error("Failed to act on escalated item", e)
+    } finally {
+      setIsActing(prev => ({ ...prev, [id]: false }))
+    }
+  }
 
   useEffect(() => {
     const token = JSON.parse(localStorage.getItem("enterprise_auth") || "{}").token || ""
@@ -70,6 +94,8 @@ export function AdminDashboard() {
       .then(r => r.json())
       .then(data => setActiveEmployees((data.users || []).length))
       .catch(() => {})
+
+    fetchEscalated()
   }, [])
 
   const container = {
@@ -163,6 +189,42 @@ export function AdminDashboard() {
           </Card>
         </motion.div>
       </div>
+
+      {escalatedQueue.length > 0 && (
+        <motion.div variants={item}>
+          <Card className="ring-1 ring-border/50 shadow-md border-warning/40 bg-warning/5">
+            <CardHeader className="pb-3 border-b border-warning/20">
+              <CardTitle className="flex items-center gap-2 text-warning font-bold">
+                <AlertTriangle className="h-5 w-5" /> Escalated Approvals ({escalatedQueue.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                {escalatedQueue.map((q) => (
+                  <div key={q.id} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-4 rounded-lg bg-background border border-border shadow-sm">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-lg">{q.employee_name}</span>
+                        <Badge variant="destructive" className="text-[10px] uppercase">Action Req</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1 font-medium">{q.merchant || q.category} • <span className="text-foreground">${parseFloat(q.converted_amount || q.amount).toFixed(2)}</span></div>
+                      <p className="text-xs mt-2 text-warning/80 font-mono italic max-w-xl">{q.comments}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button variant="outline" className="text-destructive hover:bg-destructive hover:text-white" onClick={() => handleEscalatedAction(String(q.id), "rejected")} disabled={isActing[q.id]}>
+                        <XCircle className="w-4 h-4 mr-2" /> Reject
+                      </Button>
+                      <Button className="bg-success hover:bg-success/90 text-white" onClick={() => handleEscalatedAction(String(q.id), "approved")} disabled={isActing[q.id]}>
+                        {isActing[q.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Approve</>}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-7 lg:grid-cols-7">
         {/* AI Insights Panel */}

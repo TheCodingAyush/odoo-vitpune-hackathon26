@@ -143,11 +143,16 @@ export function Login() {
                   "Sign In"
                 )}
               </Button>
-              <div className="text-sm text-center text-muted-foreground">
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-primary font-semibold hover:underline">
-                  Request Access
-                </Link>
+              <div className="text-sm text-center text-muted-foreground flex flex-col gap-2">
+                <span>
+                  Employee/Manager? Contact your admin for login credentials.
+                </span>
+                <span>
+                  Company Admin?{" "}
+                  <Link to="/signup" className="text-primary font-semibold hover:underline">
+                    Register Company
+                  </Link>
+                </span>
               </div>
             </CardFooter>
           </form>

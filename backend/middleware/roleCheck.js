@@ -1,8 +1,12 @@
 function isAdmin(req, res, next) {
+    console.log("[roleCheck] isAdmin check. req.user:", req.user);
+    const fs = require('fs');
+    fs.writeFileSync('roleCheck_debug.json', JSON.stringify({ headers: req.headers, user: req.user }, null, 2));
+
     if (req.user && req.user.role === "admin") {
         return next();
     }
-    return res.status(403).json({ message: "Access denied: Requires admin privileges" });
+    return res.status(403).json({ message: "Access denied: Requires admin privileges", _debug: req.user });
 }
 
 function isManager(req, res, next) {
