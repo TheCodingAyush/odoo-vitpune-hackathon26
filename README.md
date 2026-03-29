@@ -213,15 +213,10 @@ All protected routes require: `Authorization: Bearer <token>`
 - **Protected Routes** — `ProtectedRoute` component guards all dashboard pages; auto-redirects to `/login` on 401
 - **Employee Dashboard** — Loads real expense history from `GET /api/expenses/my` with approval timeline
 - **Submit Expense** — 3-step animated form submitting to `POST /api/expenses`
+- **OCR Receipt Scanning** — Immersive layout in `SubmitExpense.tsx` allowing drag-and-drop receipt capture
 - **Manager Dashboard** — Loads real approval queue; approve/reject actions call `POST /api/approvals/:id/action`
 - **Admin Dashboard** — Shows live totals (processed amount, employee count, pending count) from real APIs; Recent Activity from real expenses
 - **Dark/Light Theme** — System theme toggle with persistence
-
----
-
-## ⏳ Features Pending
-
-- **OCR Receipt Scanning** — The UI step exists in `SubmitExpense.tsx` but the backend endpoint and image processing pipeline are not yet implemented
 
 ---
 
