@@ -206,7 +206,7 @@ export function ManagerDashboard() {
                       <div className="font-mono font-bold tracking-tight text-foreground flex justify-between items-end mt-2">
                         <span className="text-[10px] font-sans text-muted-foreground">{exp.id}</span>
                         <span className="text-lg">
-                          {exp.currency === "USD" ? "$" : exp.currency === "EUR" ? "€" : exp.currency}{exp.amount.toFixed(2)}
+                          {exp.converted ? exp.converted.toFixed(2) : exp.amount.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -238,17 +238,18 @@ export function ManagerDashboard() {
                     <div className="space-y-1">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount Details</h4>
                       <div className="text-4xl font-mono font-bold tracking-tight mt-2 flex items-center gap-3">
-                        {selectedExp.currency === "USD" ? "$" : "€"}{selectedExp.amount.toFixed(2)}
-                        <Badge variant="secondary" className="text-sm font-normal py-1 px-2 uppercase tracking-widest">{selectedExp.currency}</Badge>
+                        {selectedExp.converted ? selectedExp.converted.toFixed(2) : selectedExp.amount.toFixed(2)}
+                        <Badge variant="secondary" className="text-sm font-normal py-1 px-2 uppercase tracking-widest">Base</Badge>
                       </div>
                       
-                      {selectedExp.converted && (
-                        <div className="flex items-center gap-2 mt-4 text-sm font-medium bg-accent/50 p-3 rounded-lg border border-border/50">
-                          <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Local equivalent:</span>
-                          <span className="font-mono font-bold">${selectedExp.converted.toFixed(2)} USD</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-4 text-sm font-medium bg-accent/50 p-3 rounded-lg border border-border/50">
+                        <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Original submitted:</span>
+                        <span className="font-mono font-bold">
+                          {selectedExp.currency === "USD" ? "$" : selectedExp.currency === "EUR" ? "€" : selectedExp.currency}
+                          {selectedExp.amount.toFixed(2)} {selectedExp.currency}
+                        </span>
+                      </div>
                     </div>
 
                     {selectedExp.flagReason && (

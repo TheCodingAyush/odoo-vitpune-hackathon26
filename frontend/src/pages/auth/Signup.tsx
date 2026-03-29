@@ -17,11 +17,38 @@ export function Signup() {
   const [isNewCompany, setIsNewCompany] = useState(true)
   const [companyName, setCompanyName] = useState("")
   const [country, setCountry] = useState("")
-  const [currency, setCurrency] = useState("USD")
+  const [currency, setCurrency] = useState("")
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   
+  const [countries, setCountries] = useState<{name: string, currency: string}[]>([])
+
+  import { useEffect } from "react"
+  useEffect(() => {
+    fetch("https://restcountries.com/v3.1/all?fields=name,currencies")
+      .then(res => res.json())
+      .then(data => {
+        const parsed = data
+          .map((c: any) => {
+            const currencyCode = Object.keys(c.currencies || {})[0] || "USD"
+            return { name: c.name.common, currency: currencyCode }
+          })
+          .sort((a: any, b: any) => a.name.localeCompare(b.name))
+        setCountries(parsed)
+      })
+      .catch(console.error)
+  }, [])
+  
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value
+    setCountry(selectedName)
+    const found = countries.find(c => c.name === selectedName)
+    if (found) {
+      setCurrency(found.currency)
+    }
+  }
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState("")
@@ -135,14 +162,40 @@ export function Signup() {
                           exit={{ height: 0, opacity: 0 }}
                           className="space-y-2 overflow-hidden"
                         >
-                          <label className="text-sm font-medium leading-none block text-muted-foreground">Workspace Name</label>
-                          <Input
-                            placeholder="Acme Corp LLC"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            className="h-11 bg-muted/50 focus:bg-background transition-colors"
-                            disabled={isLoading}
-                          />
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none block text-muted-foreground">Workspace Name</label>
+                            <Input
+                              placeholder="Acme Corp LLC"
+                              value={companyName}
+                              onChange={(e) => setCompanyName(e.target.value)}
+                              className="h-11 bg-muted/50 focus:bg-background transition-colors"
+                              disabled={isLoading}
+                            />
+                          </div>
+                          
+                          <div className="space-y-2 pt-2">
+                            <label className="text-sm font-medium leading-none block text-muted-foreground">Country</label>
+                            <select 
+                              value={country}
+                              onChange={handleCountryChange}
+                              disabled={isLoading || countries.length === 0}
+                              className="w-full h-11 bg-muted/50 rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <option value="" disabled>Select a country</option>
+                              {countries.map(c => (
+                                <option key={c.name} value={c.name}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="space-y-2 pt-2">
+                            <label className="text-sm font-medium leading-none block text-muted-foreground">Base Currency</label>
+                            <Input
+                              value={currency || "Select a country first"}
+                              disabled
+                              className="h-11 bg-muted/50 opacity-70 cursor-not-allowed"
+                            />
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
