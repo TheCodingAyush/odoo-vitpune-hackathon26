@@ -6,6 +6,10 @@ dotenv.config();
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
+const approvalRoutes = require("./routes/approvalRoutes");
+const ruleRoutes = require("./routes/ruleRoutes");
+const currencyRoutes = require("./routes/currencyRoutes");
 const pool = require("./config/db");
 
 const app = express();
@@ -24,6 +28,10 @@ app.get("/api/health", async (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/approvals", approvalRoutes);
+app.use("/api/rules", ruleRoutes);
+app.use("/api/currency", currencyRoutes);
 
 app.use((req, res) => {
     return res.status(404).json({ message: `Route ${req.originalUrl} not found` });
