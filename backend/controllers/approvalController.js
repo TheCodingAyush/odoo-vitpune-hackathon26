@@ -18,7 +18,7 @@ async function approveOrReject(req, res) {
     try {
         // Fetch the approval record and verify ownership
         const pendingApprovals = await ExpenseApproval.findPendingByApprover(approverId);
-        const match = pendingApprovals.find((a) => a.id === parseInt(id, 10));
+        const match = pendingApprovals.find((a) => parseInt(a.id, 10) === parseInt(id, 10));
 
         if (!match) {
             return res.status(403).json({ message: "Approval record not found or not assigned to you" });

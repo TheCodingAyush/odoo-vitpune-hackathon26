@@ -1,12 +1,16 @@
 const pool = require("../config/db");
 
 async function create(expenseId, approverId, stepNumber) {
+    return createWithStatus(expenseId, approverId, stepNumber, "pending");
+}
+
+async function createWithStatus(expenseId, approverId, stepNumber, status) {
     const query = `
         INSERT INTO expense_approvals (expense_id, approver_id, step_number, status)
-        VALUES ($1, $2, $3, 'pending')
+        VALUES ($1, $2, $3, $4)
         RETURNING *
     `;
-    const { rows } = await pool.query(query, [expenseId, approverId, stepNumber]);
+    const { rows } = await pool.query(query, [expenseId, approverId, stepNumber, status]);
     return rows[0];
 }
 
@@ -49,6 +53,7 @@ async function findPendingByApprover(approverId) {
 
 module.exports = {
     create,
+    createWithStatus,
     findByExpense,
     updateStatus,
     findPendingByApprover,

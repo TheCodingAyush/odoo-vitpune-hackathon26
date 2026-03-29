@@ -7,10 +7,11 @@ const { findById: findCompanyById } = require("../models/Company");
 /**
  * POST /api/expenses
  * Employee submits a new expense. Currency is converted to company base currency.
- * If a rule_id is provided, the approval chain is initialized immediately.
+ * The approval chain is auto-initialized using the company's first rule.
+ * An explicit ruleId in the body overrides the default.
  */
 async function submitExpense(req, res) {
-    const { amount, currency, category, description, date, ruleId } = req.body;
+    const { amount, currency, category, description, date, ruleId: explicitRuleId } = req.body;
     const { userId: employeeId, companyId } = req.user;
 
     if (!amount || !currency || !category || !description || !date) {
@@ -33,14 +34,25 @@ async function submitExpense(req, res) {
             convertedAmount, category, description, date
         );
 
-        // If a rule is provided, initialize the approval chain right away
+        // Auto-find rule: use explicit ruleId or fall back to first company rule
+        let resolvedRuleId = explicitRuleId || null;
+        if (!resolvedRuleId) {
+            const companyRules = await ApprovalRule.findByCompany(companyId);
+            if (companyRules && companyRules.length > 0) {
+                resolvedRuleId = companyRules[0].id;
+            }
+        }
+
         let approvalChain = null;
-        if (ruleId) {
-            const rule = await ApprovalRule.findById(ruleId);
+        if (resolvedRuleId) {
+            const rule = await ApprovalRule.findById(resolvedRuleId);
             if (!rule || rule.company_id !== companyId) {
                 return res.status(400).json({ message: "Invalid or unauthorized rule" });
             }
-            approvalChain = await initializeApprovalChain(expense.id, ruleId);
+            // Store rule_id on the expense for the approval engine to reference
+            await Expense.setRuleId(expense.id, resolvedRuleId);
+            expense.rule_id = resolvedRuleId;
+            approvalChain = await initializeApprovalChain(expense.id, resolvedRuleId);
         }
 
         return res.status(201).json({

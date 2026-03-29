@@ -61,6 +61,16 @@ async function updateStatus(id, status) {
     return rows[0] || null;
 }
 
+async function setRuleId(id, ruleId) {
+    // Add rule_id column if it doesn't exist, then store the value
+    await pool.query(`
+        ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rule_id INTEGER REFERENCES approval_rules(id)
+    `);
+    const query = `UPDATE expenses SET rule_id = $2 WHERE id = $1 RETURNING *`;
+    const { rows } = await pool.query(query, [id, ruleId]);
+    return rows[0] || null;
+}
+
 module.exports = {
     createExpense,
     findByEmployee,
@@ -68,4 +78,5 @@ module.exports = {
     findPendingForManager,
     findById,
     updateStatus,
+    setRuleId,
 };
